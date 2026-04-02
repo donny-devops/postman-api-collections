@@ -1,0 +1,441 @@
+{
+  "info": {
+    "name": "AI-Powered Tech Support Agent",
+    "description": "A complete Postman collection for an AI-powered tech support agent powered by the Claude API. Covers ticket intake, AI triage, conversation threads, knowledge base search, escalation, and resolution workflows.\n\n## Quick Start\n1. Fork this collection\n2. Set up the `Tech Support Agent` environment (see Environments)\n3. Run `POST Create Ticket` to open a new ticket\n4. Run `POST AI Triage` to get an AI-generated diagnosis and suggested response\n5. Use `POST Send Message` to continue the conversation thread\n\n## Auth\nAll requests require `X-API-Key: {{api_key}}` header (pre-set via environment).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "tech-support-agent-v1"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key",   "value": "X-API-Key",   "type": "string" },
+      { "key": "value", "value": "{{api_key}}", "type": "string" },
+      { "key": "in",    "value": "header",       "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url",  "value": "{{base_url}}" },
+    { "key": "ticket_id", "value": "" },
+    { "key": "thread_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1 — Ticket Lifecycle",
+      "description": "Core CRUD operations for support tickets.",
+      "item": [
+        {
+          "name": "Create Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Has ticket ID', () => pm.expect(body.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('ticket_id', body.id);",
+                  "pm.collectionVariables.set('thread_id', body.thread_id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/tickets", "host": ["{{base_url}}"], "path": ["tickets"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Cannot connect to database after deploy\",\n  \"body\": \"After deploying version 2.4.1 our API is throwing\\n\\n  FATAL: password authentication failed for user \\\"app_user\\\"\\n\\nThis worked fine on staging. We rolled back but the error persists.\",\n  \"priority\": \"high\",\n  \"category\": \"infrastructure\",\n  \"reporter\": {\n    \"name\": \"Jane Smith\",\n    \"email\": \"jane@example.com\",\n    \"plan\": \"enterprise\"\n  },\n  \"metadata\": {\n    \"app_version\": \"2.4.1\",\n    \"environment\": \"production\",\n    \"region\": \"us-east-1\"\n  }\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"tkt_01HXYZ123\",\n  \"thread_id\": \"thd_01HXYZ456\",\n  \"status\": \"open\",\n  \"priority\": \"high\",\n  \"category\": \"infrastructure\",\n  \"subject\": \"Cannot connect to database after deploy\",\n  \"created_at\": \"2026-04-02T10:00:00Z\",\n  \"sla_deadline\": \"2026-04-02T14:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Tickets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tickets?status=open&priority=high&page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["tickets"],
+              "query": [
+                { "key": "status",   "value": "open" },
+                { "key": "priority", "value": "high" },
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ticket",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Ticket Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"assigned_to\": \"agent_007\",\n  \"internal_notes\": \"Investigating DB credentials rotation issue\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Close Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolution\": \"The DB password was rotated during a secrets manager sync but the app's environment variable was not updated. Updated the env var and restarted the service.\",\n  \"resolution_category\": \"configuration\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 — AI Triage & Analysis",
+      "description": "AI-powered ticket analysis using Claude. These endpoints return structured diagnoses, suggested responses, and knowledge base matches.",
+      "item": [
+        {
+          "name": "AI Triage — Auto-classify & Diagnose",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Has diagnosis', () => pm.expect(body.diagnosis).to.be.a('string'));",
+                  "pm.test('Has suggested_response', () => pm.expect(body.suggested_response).to.be.a('string'));",
+                  "pm.test('Has confidence score', () => pm.expect(body.confidence).to.be.within(0, 1));",
+                  "console.log('Diagnosis:', body.diagnosis);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/triage",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "triage"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"include_kb_matches\": true,\n  \"include_similar_resolved\": true,\n  \"max_kb_results\": 3\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK — AI Triage Result",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"ticket_id\": \"tkt_01HXYZ123\",\n  \"diagnosis\": \"Password authentication failure after deployment strongly indicates a secrets rotation mismatch. The database password was likely rotated in the secrets manager but the application environment variable was not updated to reflect the new credential.\",\n  \"suggested_response\": \"Hi Jane,\\n\\nThank you for reporting this. Based on the error and timing, this looks like a credentials mismatch following your deployment.\\n\\nPlease try the following steps:\\n1. Check your secrets manager (AWS Secrets Manager / Vault) for the current `db_password` value\\n2. Compare it against the `DATABASE_URL` or `DB_PASSWORD` env var in your production environment\\n3. If they differ, update the env var and perform a rolling restart\\n\\nIf the issue persists after step 3, please share your deployment pipeline config so we can investigate further.\\n\\nBest,\\nSupport Team\",\n  \"category\": \"infrastructure\",\n  \"priority_recommendation\": \"high\",\n  \"confidence\": 0.92,\n  \"root_cause_hypothesis\": \"Secrets manager rotation not propagated to application runtime\",\n  \"estimated_resolution_time\": \"30 minutes\",\n  \"kb_matches\": [\n    { \"id\": \"kb_789\", \"title\": \"DB password rotation checklist\", \"relevance\": 0.95 },\n    { \"id\": \"kb_234\", \"title\": \"Post-deploy credential verification steps\", \"relevance\": 0.87 }\n  ],\n  \"model\": \"claude-sonnet-4-6\",\n  \"tokens_used\": 1240\n}"
+            }
+          ]
+        },
+        {
+          "name": "AI Sentiment Analysis",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/sentiment",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "sentiment"]
+            },
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"sentiment\": \"frustrated\",\n  \"urgency_score\": 0.85,\n  \"churn_risk\": \"medium\",\n  \"tone\": \"professional\",\n  \"recommended_tone\": \"empathetic_and_direct\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "AI Draft Response",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/draft-response",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "draft-response"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tone\": \"empathetic\",\n  \"include_steps\": true,\n  \"agent_name\": \"Alex\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "AI Summarize Thread",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/summarize",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "summarize"]
+            },
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3 — Conversation Thread",
+      "description": "Multi-turn conversation management. Messages from both the user and AI agent are stored in a thread.",
+      "item": [
+        {
+          "name": "Get Thread",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/threads/{{thread_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["threads", "{{thread_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message (User)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/threads/{{thread_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["threads", "{{thread_id}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"user\",\n  \"content\": \"I checked the secrets manager and the password does match what's in our env var. The error is still happening after restart. Here is the full stack trace:\\n\\npsycopg2.OperationalError: FATAL: password authentication failed for user \\\"app_user\\\"\\n  at connect() line 42\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message (AI Reply)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/threads/{{thread_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["threads", "{{thread_id}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"assistant\",\n  \"content\": \"Thank you for the stack trace. Since the passwords match, the next likely cause is a pg_hba.conf restriction or a connection pool holding stale connections with the old credential. Please try: 1) Verify pg_hba.conf allows app_user from your app server's IP 2) Flush your connection pool 3) Check if there's a read replica with different auth config.\",\n  \"generated_by\": \"ai\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 — Knowledge Base",
+      "description": "Search and manage the knowledge base that backs AI responses.",
+      "item": [
+        {
+          "name": "Search Knowledge Base",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/knowledge-base/search?q=database+authentication+failure&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["knowledge-base", "search"],
+              "query": [
+                { "key": "q",     "value": "database authentication failure" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"query\": \"database authentication failure\",\n  \"results\": [\n    {\n      \"id\": \"kb_789\",\n      \"title\": \"DB password rotation checklist\",\n      \"excerpt\": \"When rotating database passwords, always update: 1) Secrets manager 2) Application env vars 3) Connection pool config...\",\n      \"relevance\": 0.95,\n      \"url\": \"/kb/db-password-rotation\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get KB Article",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/knowledge-base/kb_789",
+              "host": ["{{base_url}}"],
+              "path": ["knowledge-base", "kb_789"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create KB Article",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/knowledge-base",
+              "host": ["{{base_url}}"],
+              "path": ["knowledge-base"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Resolving pg_hba.conf authentication errors\",\n  \"body\": \"## Problem\\nApplication cannot authenticate to PostgreSQL despite correct credentials.\\n\\n## Causes\\n1. pg_hba.conf restricts the client IP\\n2. Stale connection pool holding old credentials\\n3. Read replica has different auth configuration\\n\\n## Resolution\\n1. Check `pg_hba.conf` for client IP restrictions\\n2. Restart connection pool\\n3. Compare auth config across all replica nodes\",\n  \"tags\": [\"postgresql\", \"authentication\", \"database\", \"infrastructure\"],\n  \"category\": \"infrastructure\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5 — Escalation & SLA",
+      "description": "Escalation workflows and SLA tracking.",
+      "item": [
+        {
+          "name": "Escalate Ticket",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/escalate",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "escalate"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Issue unresolved after 2 hours. Customer is on enterprise plan and is experiencing production downtime.\",\n  \"escalate_to\": \"tier2\",\n  \"notify_customer\": true\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get SLA Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/sla",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "sla"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"ticket_id\": \"tkt_01HXYZ123\",\n  \"sla_tier\": \"enterprise_high\",\n  \"first_response_target\": \"2026-04-02T11:00:00Z\",\n  \"first_response_met\": true,\n  \"resolution_target\": \"2026-04-02T14:00:00Z\",\n  \"resolution_met\": null,\n  \"time_remaining_minutes\": 87,\n  \"breach_risk\": \"medium\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List SLA Breaches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tickets?sla_status=breached&status=open",
+              "host": ["{{base_url}}"],
+              "path": ["tickets"],
+              "query": [
+                { "key": "sla_status", "value": "breached" },
+                { "key": "status",     "value": "open" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6 — Analytics",
+      "description": "Support metrics and AI performance analytics.",
+      "item": [
+        {
+          "name": "Ticket Volume Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/analytics/tickets?from=2026-03-01&to=2026-04-01&group_by=day",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "tickets"],
+              "query": [
+                { "key": "from",     "value": "2026-03-01" },
+                { "key": "to",       "value": "2026-04-01" },
+                { "key": "group_by", "value": "day" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "AI Resolution Rate",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/analytics/ai-performance?from=2026-03-01&to=2026-04-01",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "ai-performance"],
+              "query": [
+                { "key": "from", "value": "2026-03-01" },
+                { "key": "to",   "value": "2026-04-01" }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"period\": { \"from\": \"2026-03-01\", \"to\": \"2026-04-01\" },\n  \"total_tickets\": 842,\n  \"ai_triaged\": 831,\n  \"ai_triage_rate\": 0.987,\n  \"ai_resolved_without_agent\": 398,\n  \"ai_resolution_rate\": 0.473,\n  \"avg_ai_confidence\": 0.84,\n  \"avg_tokens_per_triage\": 1180,\n  \"categories\": {\n    \"infrastructure\": 312,\n    \"billing\": 201,\n    \"feature_request\": 189,\n    \"bug\": 140\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

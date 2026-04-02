@@ -1,0 +1,29 @@
+# Postman environment files (contain secrets/tokens)
+*.postman_environment.json
+!*.postman_environment.example.json
+
+# Postman globals (may contain secrets)
+*.postman_globals.json
+
+# Newman output
+newman/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
