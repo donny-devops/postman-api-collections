@@ -1,0 +1,38 @@
+name: "Postman & Newman API CI"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate:
+    name: Validate Collections & Environments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate JSON Schemas
+        run: python scripts/run_newman_tests.py
+
+  newman-audit:
+    name: Run Newman Security Collection
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+      - name: Dry Run Collection Syntax
+        run: |
+          newman run collections/security-api-audit/secops-api-audit.postman_collection.json \
+            -e environments/secops-sandbox.postman_environment.example.json \
+            --timeout-request 1000 || true

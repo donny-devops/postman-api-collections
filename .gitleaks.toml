@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[whitelist]
+description = "Ignore example tokens in postman environments"
+paths = [
+  '''environments/.*''',
+  '''collections/.*'''
+]
