@@ -19,19 +19,19 @@ You can import these collections into Postman to quickly bootstrap API developme
 postman-api-collections/
 ├── README.md
 ├── collections/
-│   ├── service-a.postman_collection.json
-│   ├── service-b.postman_collection.json
-│   └── ...
+│   ├── api-doc-demo-portal/
+│   │   └── api-doc-demo-portal.postman_collection.json
+│   ├── security-api-audit/
+│   │   └── secops-api-audit.postman_collection.json
+│   └── tech-support-agent/
+│       └── ai-tech-support-agent.postman_collection.json
 ├── environments/
-│   ├── local.postman_environment.json
-│   ├── dev.postman_environment.json
-│   ├── staging.postman_environment.json
-│   └── prod.postman_environment.json
+│   ├── api-doc-demo-portal-sandbox.postman_environment.example.json
+│   ├── secops-sandbox.postman_environment.example.json
+│   └── tech-support-agent.postman_environment.example.json
 └── scripts/
-    └── newman-run-examples.sh
+    └── run_newman_tests.py
 ```
-
-> Adjust file names to match your actual services and environments.
 
 ## Getting Started
 
@@ -75,33 +75,38 @@ To keep collections consistent and easy to navigate, follow these conventions:[w
 - Pre-request scripts: use to set auth headers, generate dynamic values, or chain data from previous requests.
 - Tests: add basic assertions for status codes, schema, and key fields to support regression.[web:42]
 
-## Running Collections with Newman
+### Validate Schema & Collections
+You can validate the JSON schema and structure of all collections and environments:
+
+```bash
+python scripts/run_newman_tests.py
+```
+
+### Running Collections with Newman
 
 You can run these collections in CI/CD or locally using **Newman**, Postman’s CLI runner.
 
-### Install Newman
+#### Install Newman
 
 ```bash
-npm install -g newman
+npm install -g newman newman-reporter-htmlextra
 ```
 
-### Basic Run
+#### Run SecOps Audit Suite
 
 ```bash
-newman run collections/service-a.postman_collection.json \
-  -e environments/dev.postman_environment.json
+newman run collections/security-api-audit/secops-api-audit.postman_collection.json \
+  -e environments/secops-sandbox.postman_environment.example.json
 ```
 
-### Example CI-friendly command
+#### Example CI-friendly command
 
 ```bash
-newman run collections/service-a.postman_collection.json \
-  -e environments/staging.postman_environment.json \
+newman run collections/security-api-audit/secops-api-audit.postman_collection.json \
+  -e environments/secops-sandbox.postman_environment.example.json \
   --reporters cli,junit \
-  --reporter-junit-export reports/service-a-junit.xml
+  --reporter-junit-export reports/secops-audit-junit.xml
 ```
-
-You can place common Newman commands or scripts in the `scripts/` directory for reuse in pipelines.
 
 ## Usage Guidelines
 

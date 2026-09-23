@@ -1,0 +1,126 @@
+{
+  "info": {
+    "_postman_id": "c7a8b910-1234-5678-9abc-def012345678",
+    "name": "SecOps & API Security Audit Suite",
+    "description": "Automated security tests for OWASP API Security Top 10, security headers, rate limiting, and SIEM alerting integration.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Security Headers Verification",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 or expected', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 204, 301, 302]);",
+              "});",
+              "pm.test('Strict-Transport-Security header is present', function () {",
+              "    pm.response.to.have.header('Strict-Transport-Security');",
+              "});",
+              "pm.test('X-Content-Type-Options is nosniff', function () {",
+              "    pm.expect(pm.response.headers.get('X-Content-Type-Options')).to.eql('nosniff');",
+              "});",
+              "pm.test('X-Frame-Options is DENY or SAMEORIGIN', function () {",
+              "    pm.expect(pm.response.headers.get('X-Frame-Options')).to.be.oneOf(['DENY', 'SAMEORIGIN']);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Verifies that production edge proxies inject modern defense-in-depth security headers."
+      }
+    },
+    {
+      "name": "Authentication & Authorization Enforcement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 401 Unauthorized without token', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test('Error response format is JSON', function () {",
+              "    pm.response.to.be.json;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/protected/metrics",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "protected",
+            "metrics"
+          ]
+        },
+        "description": "Verifies that protected routes reject unauthorized requests without credentials."
+      }
+    },
+    {
+      "name": "PagerDuty Incident Webhook Ingestion Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 202 Accepted or 200 OK', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"routing_key\": \"{{pagerduty_routing_key}}\",\n  \"event_action\": \"trigger\",\n  \"payload\": {\n    \"summary\": \"Synthetic Postman Smoke Test Alert\",\n    \"severity\": \"info\",\n    \"source\": \"postman-newman-runner\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/alerts/pagerduty",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "alerts",
+            "pagerduty"
+          ]
+        }
+      }
+    }
+  ]
+}
