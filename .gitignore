@@ -7,6 +7,10 @@
 
 # Newman output
 newman/
+newman-reports/
+
+# Dependencies
+node_modules/
 
 # Environment / secrets
 .env

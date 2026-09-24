@@ -82,6 +82,27 @@ You can validate the JSON schema and structure of all collections and environmen
 python scripts/run_newman_tests.py
 ```
 
+### Quick Start with npm Scripts
+
+If you have Node.js installed, you can run tests and generate reports using `npm`:
+
+```bash
+# Validate schemas
+npm test
+
+# Run individual collections with Newman
+npm run test:secops
+npm run test:demo-portal
+npm run test:support-agent
+
+# Run all collections sequentially
+npm run test:all
+
+# Generate HTML Extra visual reports
+npm run report:secops
+npm run report:all
+```
+
 ### Running Collections with Newman
 
 You can run these collections in CI/CD or locally using **Newman**, Postman’s CLI runner.
