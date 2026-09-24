@@ -99,14 +99,24 @@ newman run collections/security-api-audit/secops-api-audit.postman_collection.js
   -e environments/secops-sandbox.postman_environment.example.json
 ```
 
-#### Example CI-friendly command
+#### Generate Rich HTML Extra Report
 
 ```bash
 newman run collections/security-api-audit/secops-api-audit.postman_collection.json \
   -e environments/secops-sandbox.postman_environment.example.json \
-  --reporters cli,junit \
-  --reporter-junit-export reports/secops-audit-junit.xml
+  --reporters cli,htmlextra \
+  --reporter-htmlextra-export reports/secops-audit-report.html
 ```
+
+### Continuous Integration (GitHub Actions)
+
+The [.github/workflows/newman-ci.yml](.github/workflows/newman-ci.yml) workflow runs on push and pull requests to `main`:
+1. **Schema Validation**: Runs `scripts/run_newman_tests.py` to validate collection and environment schemas.
+2. **Matrix Test Execution**: Executes Newman across all three collections in parallel:
+   - `secops-api-audit`
+   - `api-doc-demo-portal`
+   - `tech-support-agent`
+3. **Artifact Upload**: Uploads standalone interactive HTML test reports generated with `newman-reporter-htmlextra` as GitHub Actions run artifacts.
 
 ## Usage Guidelines
 
@@ -120,9 +130,9 @@ newman run collections/security-api-audit/secops-api-audit.postman_collection.js
 
 - Add more collections for new services and endpoints.
 - Add data-driven tests using CSV/JSON runners.
-- Add Newman-based GitHub Actions / CI templates.
+- [x] Add Newman-based GitHub Actions CI matrix workflow.
+- [x] Generate visual HTML reports from Newman runs with `newman-reporter-htmlextra`.
 - Add contract-style tests for critical endpoints.
-- Generate HTML reports from Newman runs.
 
 ## License
 

@@ -19,20 +19,47 @@ jobs:
       - name: Validate JSON Schemas
         run: python scripts/run_newman_tests.py
 
-  newman-audit:
-    name: Run Newman Security Collection
+  newman-matrix:
+    name: Run Newman (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: secops-api-audit
+            collection: collections/security-api-audit/secops-api-audit.postman_collection.json
+            environment: environments/secops-sandbox.postman_environment.example.json
+            report_name: secops-api-audit-report
+          - name: api-doc-demo-portal
+            collection: collections/api-doc-demo-portal/api-doc-demo-portal.postman_collection.json
+            environment: environments/api-doc-demo-portal-sandbox.postman_environment.example.json
+            report_name: api-doc-demo-portal-report
+          - name: tech-support-agent
+            collection: collections/tech-support-agent/ai-tech-support-agent.postman_collection.json
+            environment: environments/tech-support-agent.postman_environment.example.json
+            report_name: tech-support-agent-report
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install Newman
+      - name: Install Newman & HTMLExtra
         run: npm install -g newman newman-reporter-htmlextra
-      - name: Dry Run Collection Syntax
+      - name: Create Reports Directory
+        run: mkdir -p newman-reports
+      - name: Run Newman with HTML Extra Reporter
         run: |
-          newman run collections/security-api-audit/secops-api-audit.postman_collection.json \
-            -e environments/secops-sandbox.postman_environment.example.json \
-            --timeout-request 1000 || true
+          newman run "${{ matrix.collection }}" \
+            -e "${{ matrix.environment }}" \
+            --reporters cli,htmlextra \
+            --reporter-htmlextra-export "newman-reports/${{ matrix.report_name }}.html" \
+            --reporter-htmlextra-title "${{ matrix.name }} Test Report" \
+            --timeout-request 1500 || true
+      - name: Upload HTML Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report-${{ matrix.name }}
+          path: newman-reports/${{ matrix.report_name }}.html
+          retention-days: 14
